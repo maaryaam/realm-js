@@ -606,5 +606,82 @@ module.exports = {
             results.avg('foo')
         });
 
+    },
+
+    testResultsUpdate: function() {
+        const NullableBasicTypesList = {
+            name: 'NullableBasicTypesList',
+            properties: {
+                list: {type: 'list', objectType: 'NullableBasicTypesObject'},
+            }
+        };
+
+        var realm = new Realm({schema: [schemas.NullableBasicTypes, NullableBasicTypesList]});
+
+        const N = 5;
+        realm.write(() => {
+            for(var i = 0; i < N; i++) {
+                realm.create('NullableBasicTypesObject', {
+                    stringCol: 'hello'
+                });
+            }
+        });
+
+        var results = realm.objects('NullableBasicTypesObject').filtered('stringCol = "hello"');
+        TestCase.assertEqual(results.length, N);
+
+        realm.write(() => {
+            results.update('stringCol', 'world');
+        });
+
+        TestCase.assertEqual(results.length, 0);
+
+        results = realm.objects('NullableBasicTypesObject').filtered('stringCol = "world"');
+        TestCase.assertEqual(results.length, N);
+
+        var emptyResults = realm.objects('NullableBasicTypesObject').filtered('stringCol = "hello"');
+        TestCase.assertEqual(emptyResults.length, 0);
+
+        realm.write(() => {
+            emptyResults.update('stringCol', 'no-op');
+        });
+
+        TestCase.assertEqual(emptyResults.length, 0);
+        TestCase.assertEqual(realm.objects('NullableBasicTypesObject').filtered('stringCol = "no-op"').length, 0);
+
+        // TODO test for all value types, including lists, linkingObject
+
+        realm.close();
+
+    },
+
+    testResultsUpdateNullUndefined() {
+
+    },
+
+    testResultsUpdateInvalidated() {
+        // TODO invalidated result set, snapshots, deleted result set
+    },
+
+    testResultsUpdateWrongProperty() {
+        var realm = new Realm({schema: [schemas.NullableBasicTypes]});
+
+        const N = 5;
+        realm.write(() => {
+            for(var i = 0; i < N; i++) {
+                realm.create('NullableBasicTypesObject', {
+                    stringCol: 'hello'
+                });
+            }
+        });
+
+        var results = realm.objects('NullableBasicTypesObject').filtered('stringCol = "hello"');
+        TestCase.assertEqual(results.length, N);
+
+        TestCase.assertThrows(function() {
+            realm.write(() => {
+                results.update('unknownCol', 'world');
+            });
+        });
     }
 };
